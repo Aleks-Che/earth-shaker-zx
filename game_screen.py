@@ -44,12 +44,12 @@ class GameScreen:
         if result == "LEVEL_COMPLETE":
             return "LEVEL_COMPLETE"
         
-        # Получаем позицию игрока в тайлах
-        player_tile_x = self.player.x // self.tile_size
-        player_tile_y = self.player.y // self.tile_size
+        # Получаем информацию о позиции игрока
+        player_occupied_tiles = self.player.get_occupied_tiles()
+        player_is_moving = self.player.is_moving
         
-        # Обновляем уровень с позицией игрока
-        self.level.update(dt, player_tile_x, player_tile_y)
+        # Обновляем уровень с информацией о игроке
+        self.level.update(dt, player_occupied_tiles, player_is_moving)
         
         # Обновляем камеру (следим за игроком)
         self.update_camera()

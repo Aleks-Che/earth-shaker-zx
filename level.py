@@ -212,7 +212,7 @@ class Level:
         
         return True
     
-    def get_object_fall_direction(self, obj, player_tile_x, player_tile_y):
+    def get_object_fall_direction(self, obj, player_occupied_tiles, player_is_moving):
         """Определение направления падения объекта"""
         if not obj.can_fall or obj.is_moving:
             return None
@@ -220,9 +220,10 @@ class Level:
         obj_tile_x, obj_tile_y = obj.get_tile_pos()
         
         # Проверяем прямое падение вниз
-        if self.can_object_move_to(obj_tile_x, obj_tile_y, obj_tile_x, obj_tile_y + 1):
+        target_tile = (obj_tile_x, obj_tile_y + 1)
+        if self.can_object_move_to(obj_tile_x, obj_tile_y, target_tile[0], target_tile[1]):
             # Проверяем, не заблокирован ли путь игроком
-            if obj_tile_x == player_tile_x and obj_tile_y + 1 == player_tile_y:
+            if target_tile in player_occupied_tiles:
                 return None
             return 'down'
         
@@ -240,23 +241,33 @@ class Level:
                 # Приоритет скольжения: сначала вправо, потом влево
                 for direction, dx in [('right', 1), ('left', -1)]:
                     new_x = obj_tile_x + dx
+                    side_tile = (new_x, obj_tile_y)
+                    fall_tile = (new_x, obj_tile_y + 1)
+                    
                     # Проверяем, можно ли скользнуть в сторону и вниз
                     if (self.can_object_move_to(obj_tile_x, obj_tile_y, new_x, obj_tile_y) and
                         self.can_object_move_to(new_x, obj_tile_y, new_x, obj_tile_y + 1)):
-                        # Проверяем, не заблокирован ли путь игроком
-                        if not ((new_x == player_tile_x and obj_tile_y == player_tile_y) or
-                               (new_x == player_tile_x and obj_tile_y + 1 == player_tile_y)):
+                        
+                        # Проверяем, не заблокированы ли пути игроком
+                        if side_tile not in player_occupied_tiles and fall_tile not in player_occupied_tiles:
                             return direction
         
         return None
     
-    def apply_gravity(self, player_tile_x, player_tile_y):
+    def apply_gravity(self, player_occupied_tiles, player_is_moving):
         """Применение гравитации к объектам"""
         for obj in self.game_objects:
             if not obj.active or obj.is_moving:
                 continue
             
-            direction = self.get_object_fall_direction(obj, player_tile_x, player_tile_y)
+            obj_tile = obj.get_tile_pos()
+            
+            # Если игрок движется и объект находится в зоне его движения, 
+            # не применяем гравитацию к этому объекту
+            if player_is_moving and obj_tile in player_occupied_tiles:
+                continue
+            
+            direction = self.get_object_fall_direction(obj, player_occupied_tiles, player_is_moving)
             if direction:
                 target_x = obj.x
                 target_y = obj.y
@@ -277,19 +288,19 @@ class Level:
                         else:
                             obj.fall_state = 'falling'
     
-    def update(self, dt, player_tile_x=None, player_tile_y=None):
+    def update(self, dt, player_occupied_tiles=None, player_is_moving=False):
         """Обновление уровня"""
         # Обновляем анимацию объектов
         for obj in self.game_objects:
             if obj.active:
                 obj.update(dt)
         
-        # Применяем гравитацию
+        # Применяем гравитацию только если есть информация об игроке
         self.gravity_timer += dt
         if self.gravity_timer >= self.gravity_interval:
             self.gravity_timer = 0
-            if player_tile_x is not None and player_tile_y is not None:
-                self.apply_gravity(player_tile_x, player_tile_y)
+            if player_occupied_tiles is not None:
+                self.apply_gravity(player_occupied_tiles, player_is_moving)
     
     def render(self, screen, camera_x, camera_y):
         """Отрисовка уровня"""

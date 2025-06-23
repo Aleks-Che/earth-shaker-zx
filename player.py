@@ -35,16 +35,20 @@ class Player:
         
         # Если не двигаемся, проверяем ввод
         if not self.is_moving:
-            self.handle_input(input_handler, level, dt)
+            result = self.handle_input(input_handler, level, dt)
+            if result:
+                return result
         else:
             # Продолжаем движение (только если включена плавная анимация)
             if self.game_settings.smooth_movement:
-                self.update_movement(dt, level)
+                result = self.update_movement(dt, level)
+                if result:
+                    return result
             else:
-                # При выключенной анимации сразу завершаем движение
-                self.x, self.y = self.target_pos
-                self.is_moving = False
-                self.handle_tile_interaction(level)
+                # При выключенной анимации движение уже завершено в start_movement
+                pass
+        
+        return None
     
     def update_animation(self, dt):
         """Обновление анимации"""
@@ -128,7 +132,10 @@ class Player:
         if not self.game_settings.smooth_movement:
             self.x, self.y = self.target_pos
             self.is_moving = False
-            self.handle_tile_interaction(level)
+            result = self.handle_tile_interaction(level)
+            return result
+        
+        return None
     
     def update_movement(self, dt, level):
         """Обновление движения (только для плавной анимации)"""
@@ -166,20 +173,21 @@ class Player:
             # Можно войти в выход только если собраны все кристаллы
             if level.get_crystals_count() == 0:
                 print("Level completed!")
-                # Здесь можно добавить переход на следующий уровень
                 return "LEVEL_COMPLETE"
             else:
                 print(f"Collect all crystals first! {level.get_crystals_count()} left")
         
         # Собираем кристаллы и других существ
-        collected = level.collect_object(tile_x, tile_y)
-        if collected:
-            if collected == 'crystal':
-                self.crystals_collected += 1
-                print(f"Crystals collected: {self.crystals_collected}")
-                print(f"Crystals left: {level.get_crystals_count()}")
-            elif collected == 'worm':
-                print("Worm collected!")
+        # Важно: собираем объекты только когда игрок полностью переместился
+        if not self.is_moving:
+            collected = level.collect_object(tile_x, tile_y)
+            if collected:
+                if collected == 'crystal':
+                    self.crystals_collected += 1
+                    print(f"Crystals collected: {self.crystals_collected}")
+                    print(f"Crystals left: {level.get_crystals_count()}")
+                elif collected == 'worm':
+                    print("Worm collected!")
     
     def get_current_sprite(self):
         """Получение текущего спрайта для анимации"""
@@ -205,3 +213,38 @@ class Player:
                            (screen_x, screen_y, self.tile_size, self.tile_size))
             pygame.draw.rect(screen, (255, 255, 255), 
                            (screen_x, screen_y, self.tile_size, self.tile_size), 2)
+
+    def get_current_tile_pos(self):
+        """Получение текущей позиции в тайлах"""
+        return (int(self.x // self.tile_size), int(self.y // self.tile_size))
+
+    def get_target_tile_pos(self):
+        """Получение целевой позиции в тайлах (куда движется игрок)"""
+        if self.is_moving:
+            return (int(self.target_pos[0] // self.tile_size), int(self.target_pos[1] // self.tile_size))
+        else:
+            return self.get_current_tile_pos()
+
+    def get_start_tile_pos(self):
+        """Получение стартовой позиции в тайлах (откуда движется игрок)"""
+        if self.is_moving:
+            return (int(self.start_pos[0] // self.tile_size), int(self.start_pos[1] // self.tile_size))
+        else:
+            return self.get_current_tile_pos()
+
+    def get_occupied_tiles(self):
+        """Получение всех тайлов, которые занимает или будет занимать игрок"""
+        tiles = set()
+        
+        # Добавляем текущую позицию
+        current_tile = self.get_current_tile_pos()
+        tiles.add(current_tile)
+        
+        # Если движется, добавляем стартовую и целевую позицию
+        if self.is_moving:
+            start_tile = self.get_start_tile_pos()
+            target_tile = self.get_target_tile_pos()
+            tiles.add(start_tile)
+            tiles.add(target_tile)
+        
+        return tiles
