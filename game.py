@@ -6,6 +6,7 @@ from settings_screen import SettingsScreen
 from sprite_loader import SpriteLoader
 from sound_manager import SoundManager
 from input_handler import InputHandler
+from game_settings import GameSettings
 
 class Game:
     def __init__(self, screen, width, height):
@@ -15,6 +16,9 @@ class Game:
         
         # Инициализация подсистем
         pygame.mixer.init()
+        
+        # Настройки игры
+        self.game_settings = GameSettings()
         
         # Загрузчики ресурсов
         self.sprite_loader = SpriteLoader()
@@ -27,8 +31,8 @@ class Game:
         self.screens = {
             'MENU': MenuScreen(width, height),
             'LEVEL_SELECT': LevelSelectScreen(width, height),
-            'GAME': GameScreen(width, height, self.sprite_loader),
-            'SETTINGS': SettingsScreen(width, height, self.sound_manager)
+            'GAME': GameScreen(width, height, self.sprite_loader, self.game_settings),
+            'SETTINGS': SettingsScreen(width, height, self.sound_manager, self.game_settings)
         }
         
         # Текущий экран
@@ -56,7 +60,7 @@ class Game:
         if result == "START_GAME":
             self.current_screen = 'GAME'
             # Создаем новый экран игры с уровнем 1
-            self.screens['GAME'] = GameScreen(self.width, self.height, self.sprite_loader, level_number=1)
+            self.screens['GAME'] = GameScreen(self.width, self.height, self.sprite_loader, self.game_settings, level_number=1)
             self.sound_manager.play_music("game_music.ogg")
         elif result == "SELECT_LEVEL":
             self.current_screen = 'LEVEL_SELECT'
@@ -64,8 +68,20 @@ class Game:
             level_number = int(result.split("_")[-1])
             self.current_screen = 'GAME'
             # Создаем новый экран игры с выбранным уровнем
-            self.screens['GAME'] = GameScreen(self.width, self.height, self.sprite_loader, level_number=level_number)
+            self.screens['GAME'] = GameScreen(self.width, self.height, self.sprite_loader, self.game_settings, level_number=level_number)
             self.sound_manager.play_music("game_music.ogg")
+        elif result == "LEVEL_COMPLETE":
+            # Переходим к следующему уровню или показываем экран победы
+            current_level = getattr(self.screens['GAME'], 'level_number', 1)
+            next_level = current_level + 1
+            
+            if next_level <= 4:  # Максимум 4 уровня
+                print(f"Moving to level {next_level}")
+                self.screens['GAME'] = GameScreen(self.width, self.height, self.sprite_loader, self.game_settings, level_number=next_level)
+            else:
+                print("Game completed!")
+                self.current_screen = 'MENU'
+                self.sound_manager.stop_music()
         elif result == "SETTINGS":
             self.current_screen = 'SETTINGS'
         elif result == "MAIN_MENU":
@@ -82,7 +98,18 @@ class Game:
     def update(self, dt):
         """Обновление игры"""
         current_screen_obj = self.screens[self.current_screen]
-        current_screen_obj.update(dt, self.input_handler)
+        
+        # Получаем результат обновления экрана
+        if hasattr(current_screen_obj, 'update'):
+            result = current_screen_obj.update(dt, self.input_handler)
+            
+            # Обрабатываем результат
+            if result:
+                return self.handle_screen_result(result)
+        else:
+            current_screen_obj.update(dt, self.input_handler)
+        
+        return None
     
     def render(self):
         """Отрисовка игры"""

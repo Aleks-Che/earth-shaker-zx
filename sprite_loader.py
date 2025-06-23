@@ -40,11 +40,8 @@ class SpriteLoader:
         self.sprites['brick_wall'] = self.get_sprite_from_sheet(sprite_sheet, 2, 0, sprite_size)
         self.sprites['stone'] = self.get_sprite_from_sheet(sprite_sheet, 3, 0, sprite_size)
         
-        # Второй ряд - дополнительные элементы
-        self.sprites['fire'] = self.get_sprite_from_sheet(sprite_sheet, 0, 1, sprite_size)
-        self.sprites['bubble'] = self.get_sprite_from_sheet(sprite_sheet, 1, 1, sprite_size)
-        self.sprites['worm'] = self.get_sprite_from_sheet(sprite_sheet, 2, 1, sprite_size)
-        self.sprites['exit'] = self.get_sprite_from_sheet(sprite_sheet, 3, 1, sprite_size)
+        # Выход (дверь)
+        self.sprites['exit'] = self.get_sprite_from_sheet(sprite_sheet, 4, 0, sprite_size)
         
         # Анимация героя (третий ряд)
         self.sprites['hero'] = []
@@ -55,6 +52,13 @@ class SpriteLoader:
         self.sprites['crystal'] = []
         for i in range(4):
             self.sprites['crystal'].append(self.get_sprite_from_sheet(sprite_sheet, i, 6, sprite_size))
+        
+        # Дополнительные объекты (если есть в спрайт-листе)
+        # Червяк (можно взять из другого ряда или использовать заглушку)
+        self.sprites['worm'] = self.get_sprite_from_sheet(sprite_sheet, 5, 0, sprite_size)
+        
+        # Пузырь
+        self.sprites['bubble'] = self.get_sprite_from_sheet(sprite_sheet, 6, 0, sprite_size)
     
     def get_sprite_from_sheet(self, sprite_sheet, col, row, sprite_size):
         """Извлечение одного спрайта из листа"""
@@ -72,10 +76,9 @@ class SpriteLoader:
         self.sprites['earth'] = self.create_colored_sprite(sprite_size, (139, 69, 19))
         self.sprites['brick_wall'] = self.create_colored_sprite(sprite_size, (165, 42, 42))
         self.sprites['stone'] = self.create_colored_sprite(sprite_size, (128, 128, 128))
-        self.sprites['fire'] = self.create_colored_sprite(sprite_size, (255, 100, 0))
-        self.sprites['bubble'] = self.create_colored_sprite(sprite_size, (0, 200, 255))
-        self.sprites['worm'] = self.create_colored_sprite(sprite_size, (100, 255, 100))
-        self.sprites['exit'] = self.create_colored_sprite(sprite_size, (255, 255, 0))
+        
+        # Выход (дверь) - яркий цвет
+        self.sprites['exit'] = self.create_colored_sprite(sprite_size, (255, 215, 0))  # Золотой
         
         # Анимация героя
         self.sprites['hero'] = []
@@ -94,8 +97,14 @@ class SpriteLoader:
         for color in crystal_colors:
             self.sprites['crystal'].append(self.create_colored_sprite(sprite_size, color))
         
+        # Червяк
+        self.sprites['worm'] = self.create_colored_sprite(sprite_size, (255, 100, 100))
+        
+        # Пузырь
+        self.sprites['bubble'] = self.create_colored_sprite(sprite_size, (0, 255, 255))
+        
         print("Созданы цветные заглушки для спрайтов")
-    
+
     def create_colored_sprite(self, size, color):
         """Создание цветного спрайта"""
         sprite = pygame.Surface((size, size))

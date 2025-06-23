@@ -1,6 +1,6 @@
 # Настройки игры
-SCREEN_WIDTH = 1024
-SCREEN_HEIGHT = 768
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 600
 FPS = 60
 TILE_SIZE = 64
 
@@ -20,6 +20,7 @@ COLORS = {
 }
 
 # Настройки анимации
+SMOOTH_MOVEMENT = True  # Плавное движение включено по умолчанию
 ANIMATION_SPEED = 0.25
 MOVEMENT_DURATION = 0.2
 

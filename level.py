@@ -3,8 +3,9 @@ import random
 from game_object import GameObject
 
 class Level:
-    def __init__(self, sprite_loader, level_number=1):
+    def __init__(self, sprite_loader, game_settings=None, level_number=1):
         self.sprite_loader = sprite_loader
+        self.game_settings = game_settings
         self.tile_size = 64
         self.width = 15
         self.height = 12
@@ -37,12 +38,15 @@ class Level:
                 # Стартовая зона (левый верхний угол) - пустая
                 elif x <= 2 and y <= 2:
                     row.append('empty')
+                # Выход в правом нижнем углу
+                elif x == self.width - 2 and y == self.height - 2:
+                    row.append('exit')
                 else:
                     # Случайное заполнение
                     rand = random.random()
                     if rand < 0.3:
                         row.append('earth')
-                    elif rand < 0.4:
+                    elif rand < 0.35:  # Уменьшили количество камней-тайлов
                         row.append('stone')
                     else:
                         row.append('empty')
@@ -51,14 +55,10 @@ class Level:
         return tiles
     
     def create_objects(self):
-        """Создание объектов на уровне"""
-        # Создаем кристаллы
+        """Создание всех объектов на уровне"""
         self.create_crystals()
-        # Создаем камни
         self.create_stones()
-        # Создаем червяков
         self.create_worms()
-        # Создаем пузыри
         self.create_bubbles()
     
     def create_crystals(self):
@@ -74,7 +74,7 @@ class Level:
             
             if self.tiles[y][x] == 'empty' and not self.get_object_at(x, y):
                 crystal = GameObject(x * self.tile_size, y * self.tile_size, 
-                                   self.sprite_loader, 'crystal')
+                                   self.sprite_loader, 'crystal', self.game_settings)
                 crystal.object_type = 'crystal'
                 crystal.can_fall = True
                 crystal.fall_state = 'stable'
@@ -82,7 +82,7 @@ class Level:
                 placed += 1
             
             attempts += 1
-    
+
     def create_stones(self):
         """Создание камней на уровне"""
         stone_count = 5
@@ -97,7 +97,7 @@ class Level:
             if self.tiles[y][x] == 'empty' and not self.get_object_at(x, y):
                 # Создаем камень как объект, а не тайл
                 stone = GameObject(x * self.tile_size, y * self.tile_size, 
-                                 self.sprite_loader, 'stone')
+                                 self.sprite_loader, 'stone', self.game_settings)
                 stone.object_type = 'stone'
                 stone.can_fall = True
                 stone.fall_state = 'stable'
@@ -105,7 +105,7 @@ class Level:
                 placed += 1
             
             attempts += 1
-    
+
     def create_worms(self):
         """Создание червяков на уровне"""
         worm_count = 3
@@ -119,7 +119,7 @@ class Level:
             
             if self.tiles[y][x] == 'empty' and not self.get_object_at(x, y):
                 worm = GameObject(x * self.tile_size, y * self.tile_size, 
-                                self.sprite_loader, 'worm')
+                                self.sprite_loader, 'worm', self.game_settings)
                 worm.object_type = 'worm'
                 worm.can_fall = True
                 worm.fall_state = 'stable'
@@ -127,7 +127,7 @@ class Level:
                 placed += 1
             
             attempts += 1
-    
+
     def create_bubbles(self):
         """Создание пузырей на уровне"""
         bubble_count = 2
@@ -141,7 +141,7 @@ class Level:
             
             if self.tiles[y][x] == 'empty' and not self.get_object_at(x, y):
                 bubble = GameObject(x * self.tile_size, y * self.tile_size, 
-                                  self.sprite_loader, 'bubble')
+                                  self.sprite_loader, 'bubble', self.game_settings)
                 bubble.object_type = 'bubble'
                 bubble.can_fall = False  # Пузыри не падают сами по себе
                 bubble.fall_state = 'stable'
@@ -173,160 +173,87 @@ class Level:
     def collect_object(self, tile_x, tile_y):
         """Сбор объекта в указанной позиции"""
         obj = self.get_object_at(tile_x, tile_y)
-        if obj and obj.object_type in ['crystal', 'worm']:
-            obj.active = False
-            return True
-        return False
+        if obj and obj.active:
+            if obj.object_type in ['crystal', 'worm']:
+                obj.active = False
+                return obj.object_type
+        return None
     
     def get_crystals_count(self):
         """Получение количества оставшихся кристаллов"""
         return len([obj for obj in self.game_objects 
                    if obj.active and obj.object_type == 'crystal'])
     
-    def can_object_fall_down(self, obj, player_tile_x, player_tile_y):
-        """Проверка, может ли объект упасть прямо вниз"""
-        # Используем целевую позицию если объект движется
-        tile_x, tile_y = obj.get_tile_pos()
-        below_tile_y = tile_y + 1
-        
-        # Если внизу граница уровня - не падаем
-        if below_tile_y >= self.height:
-            return False
-        
-        # Проверяем тайл под объектом
-        below_tile = self.get_tile(tile_x, below_tile_y)
-        
-        # Если под объектом пустота
-        if below_tile == 'empty':
-            # Проверяем, нет ли игрока под объектом
-            if tile_x == player_tile_x and below_tile_y == player_tile_y:
-                return False
-            
-            # Проверяем, нет ли другого объекта
-            below_object = self.get_object_at(tile_x, below_tile_y)
-            if below_object and below_object.active and below_object != obj:
-                return False
-            
-            return True
-        
-        # Если под объектом земля или стена - не падаем
-        return False
+    def get_player_start_position(self):
+        """Получение стартовой позиции игрока"""
+        # Возвращаем стандартную стартовую позицию (в тайлах)
+        return (1, 1)
 
-    def can_object_slide(self, obj, direction, player_tile_x, player_tile_y):
-        """Проверка, может ли объект соскользнуть в сторону
-        direction: -1 для левого направления, 1 для правого"""
-        
-        tile_x, tile_y = obj.get_tile_pos()
-        below_tile_y = tile_y + 1
-        side_tile_x = tile_x + direction
-        
+    def get_total_crystals(self):
+        """Получение общего количества кристаллов на уровне"""
+        return len([obj for obj in self.game_objects 
+                   if obj.object_type == 'crystal'])
+    
+    def can_object_move_to(self, from_tile_x, from_tile_y, to_tile_x, to_tile_y):
+        """Проверка, может ли объект переместиться в указанную позицию"""
         # Проверяем границы
-        if side_tile_x < 0 or side_tile_x >= self.width or below_tile_y >= self.height:
+        if to_tile_x < 0 or to_tile_x >= self.width or to_tile_y < 0 or to_tile_y >= self.height:
             return False
         
-        # Проверяем, что сбоку от объекта пусто
-        side_tile = self.get_tile(side_tile_x, tile_y)
-        if side_tile != 'empty':
+        # Проверяем тип тайла
+        tile_type = self.get_tile(to_tile_x, to_tile_y)
+        if tile_type != 'empty':
             return False
         
-        # Проверяем, что нет объекта сбоку от текущего объекта
-        side_object = self.get_object_at(side_tile_x, tile_y)
-        if side_object and side_object.active and side_object != obj:
-            return False
-        
-        # Проверяем, что нет игрока сбоку от объекта
-        if side_tile_x == player_tile_x and tile_y == player_tile_y:
-            return False
-        
-        # Проверяем, что под боковой позицией пусто
-        side_below_tile = self.get_tile(side_tile_x, below_tile_y)
-        if side_below_tile != 'empty':
-            return False
-        
-        # Проверяем, что нет объекта под боковой позицией
-        side_below_object = self.get_object_at(side_tile_x, below_tile_y)
-        if side_below_object and side_below_object.active and side_below_object != obj:
-            return False
-        
-        # Проверяем, что нет игрока под боковой позицией
-        if side_tile_x == player_tile_x and below_tile_y == player_tile_y:
+        # Проверяем, нет ли другого объекта
+        target_obj = self.get_object_at(to_tile_x, to_tile_y)
+        if target_obj and target_obj.active:
             return False
         
         return True
-
-    def is_object_slippery(self, obj_type, tile_type):
-        """Проверка, является ли объект/тайл скользким"""
-        slippery_objects = ['stone', 'crystal', 'worm', 'bubble']
-        slippery_tiles = ['brick_wall', 'stone']
-        
-        if obj_type:
-            return obj_type in slippery_objects
-        if tile_type:
-            return tile_type in slippery_tiles
-        
-        return False
-
+    
     def get_object_fall_direction(self, obj, player_tile_x, player_tile_y):
-        """Определение направления падения объекта
-        Возвращает: 'down', 'left', 'right' или None"""
+        """Определение направления падения объекта"""
+        if not obj.can_fall or obj.is_moving:
+            return None
         
-        # Сначала проверяем, может ли объект упасть прямо вниз
-        if self.can_object_fall_down(obj, player_tile_x, player_tile_y):
+        obj_tile_x, obj_tile_y = obj.get_tile_pos()
+        
+        # Проверяем прямое падение вниз
+        if self.can_object_move_to(obj_tile_x, obj_tile_y, obj_tile_x, obj_tile_y + 1):
+            # Проверяем, не заблокирован ли путь игроком
+            if obj_tile_x == player_tile_x and obj_tile_y + 1 == player_tile_y:
+                return None
             return 'down'
         
-        # Если не может упасть вниз, проверяем, стоит ли он на скользком объекте
-        tile_x, tile_y = obj.get_tile_pos()
-        below_tile_y = tile_y + 1
-        
-        if below_tile_y >= self.height:
-            return None
-        
-        # Проверяем тайл под объектом
-        below_tile = self.get_tile(tile_x, below_tile_y)
-        below_object = self.get_object_at(tile_x, below_tile_y)
-        
-        # Определяем, скользкий ли объект/тайл под нами
-        is_slippery = False
-        if below_object and below_object.active and below_object != obj:
-            is_slippery = self.is_object_slippery(below_object.object_type, None)
-        else:
-            is_slippery = self.is_object_slippery(None, below_tile)
-        
-        # Если под нами игрок или земля - не скользим
-        if (tile_x == player_tile_x and below_tile_y == player_tile_y) or below_tile == 'earth':
-            return None
-        
-        if not is_slippery:
-            return None
-        
-        # Проверяем возможность соскальзывания
-        can_slide_left = self.can_object_slide(obj, -1, player_tile_x, player_tile_y)
-        can_slide_right = self.can_object_slide(obj, 1, player_tile_x, player_tile_y)
-        
-        # Если можем соскользнуть в обе стороны, выбираем правую (как в оригинале)
-        if can_slide_right:
-            return 'right'
-        elif can_slide_left:
-            return 'left'
+        # Проверяем скольжение (только для камней и кристаллов)
+        if obj.object_type in ['stone', 'crystal']:
+            # Что находится под объектом
+            below_tile = self.get_tile(obj_tile_x, obj_tile_y + 1)
+            below_obj = self.get_object_at(obj_tile_x, obj_tile_y + 1)
+            
+            # Объект может скользить с твердых поверхностей
+            can_slide = (below_tile in ['stone', 'brick_wall'] or 
+                        (below_obj and below_obj.object_type in ['stone', 'crystal']))
+            
+            if can_slide:
+                # Приоритет скольжения: сначала вправо, потом влево
+                for direction, dx in [('right', 1), ('left', -1)]:
+                    new_x = obj_tile_x + dx
+                    # Проверяем, можно ли скользнуть в сторону и вниз
+                    if (self.can_object_move_to(obj_tile_x, obj_tile_y, new_x, obj_tile_y) and
+                        self.can_object_move_to(new_x, obj_tile_y, new_x, obj_tile_y + 1)):
+                        # Проверяем, не заблокирован ли путь игроком
+                        if not ((new_x == player_tile_x and obj_tile_y == player_tile_y) or
+                               (new_x == player_tile_x and obj_tile_y + 1 == player_tile_y)):
+                            return direction
         
         return None
     
     def apply_gravity(self, player_tile_x, player_tile_y):
         """Применение гравитации к объектам"""
-        # Собираем объекты, которые должны упасть или соскользнуть
         for obj in self.game_objects:
-            if not obj.active or not obj.can_fall or obj.is_moving:
-                continue
-            
-            # Если объект уже скользит, продолжаем его движение вниз
-            if hasattr(obj, 'fall_state') and obj.fall_state == 'sliding':
-                # Проверяем, может ли он упасть вниз после соскальзывания
-                if self.can_object_fall_down(obj, player_tile_x, player_tile_y):
-                    target_y = obj.y + self.tile_size
-                    if obj.start_movement(obj.x, target_y):
-                        obj.fall_state = 'falling'
-                else:
-                    obj.fall_state = 'stable'
+            if not obj.active or obj.is_moving:
                 continue
             
             direction = self.get_object_fall_direction(obj, player_tile_x, player_tile_y)
@@ -397,13 +324,27 @@ class Level:
             'stone': (128, 128, 128)
         }
         return colors.get(tile_type, (255, 0, 255))
-
-    def get_player_start_position(self):
-        """Получение стартовой позиции игрока"""
-        # Возвращаем стандартную стартовую позицию (в тайлах)
-        return (1, 1)
-
-    def get_total_crystals(self):
-        """Получение общего количества кристаллов на уровне"""
-        return len([obj for obj in self.game_objects 
-                   if obj.object_type == 'crystal'])
+    
+    def can_player_move_to(self, tile_x, tile_y):
+        """Проверка, может ли игрок переместиться в указанную позицию"""
+        # Проверяем границы
+        if tile_x < 0 or tile_x >= self.width or tile_y < 0 or tile_y >= self.height:
+            return False
+        
+        # Проверяем тип тайла
+        tile_type = self.get_tile(tile_x, tile_y)
+        
+        # Можно ходить по пустым местам и земле
+        if tile_type in ['empty', 'earth']:
+            # Проверяем, нет ли блокирующих объектов
+            obj = self.get_object_at(tile_x, tile_y)
+            if obj and obj.active and obj.object_type in ['stone', 'bubble']:
+                return False  # Камни и пузыри блокируют движение
+            return True
+        
+        # Можно войти в выход (дверь)
+        if tile_type == 'exit':
+            return True
+        
+        # Нельзя проходить через стены и камни-тайлы
+        return False
