@@ -6,7 +6,7 @@ class GameScreen:
     def __init__(self, width, height, sprite_loader, game_settings, level_number=1):
         self.width = width
         self.height = height
-        self.sprite_loader = sprite_loader
+        self.sprite_loader = sprite_loader  # Возвращаем обратно sprite_loader
         self.game_settings = game_settings
         self.level_number = level_number
         
@@ -99,17 +99,19 @@ class GameScreen:
         # Статистика игры
         crystals_left = self.level.get_crystals_count()
         movement_mode = "Smooth" if self.game_settings.smooth_movement else "Grid"
+        sprite_theme = self.game_settings.get_sprite_theme_name()
         stats = [
             f"Level: {self.level_number}",
             f"Crystals: {self.player.crystals_collected}/{self.level.total_crystals}",
             f"Crystals left: {crystals_left}",
             f"Movement: {movement_mode}",
+            f"Sprites: {sprite_theme}",
             f"Position: ({self.player.x // self.tile_size}, {self.player.y // self.tile_size})"
         ]
         
         for i, stat in enumerate(stats):
             text_surface = self.font.render(stat, True, (255, 255, 255))
-            screen.blit(text_surface, (10, 10 + i * 20))
+            screen.blit(text_surface, (10, 10 + i * 18))
         
         # Управление
         controls = [
@@ -119,7 +121,7 @@ class GameScreen:
         
         for i, control in enumerate(controls):
             text_surface = self.font.render(control, True, (200, 200, 200))
-            screen.blit(text_surface, (10, 110 + i * 15))
+            screen.blit(text_surface, (10, 120 + i * 15))
         
         # Заголовок игры в правом верхнем углу
         title = self.font_large.render("EARTHSHAKER", True, (255, 255, 0))

@@ -7,48 +7,87 @@ class SettingsScreen:
         self.sound_manager = sound_manager
         self.game_settings = game_settings
         
-        # Шрифты
-        self.font_large = pygame.font.Font(None, 48)
-        self.font_medium = pygame.font.Font(None, 36)
-        self.font_small = pygame.font.Font(None, 24)
+        # Настройки меню
+        self.font = pygame.font.Font(None, 48)
+        self.font_large = pygame.font.Font(None, 64)
         
-        # Выбранный элемент меню
+        # Пункты настроек
+        self.settings_items = [
+            "Плавное движение",
+            "Громкость звуков",
+            "Громкость музыки",
+            "Тема спрайтов",
+            "Назад"
+        ]
+        
         self.selected_item = 0
-        self.menu_items = ['Sound Volume', 'Music Volume', 'Movement Mode', 'Back']
         
     def handle_event(self, event):
-        """Обработка событий"""
+        """Обработка событий экрана настроек"""
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_UP:
-                self.selected_item = (self.selected_item - 1) % len(self.menu_items)
+                self.selected_item = (self.selected_item - 1) % len(self.settings_items)
             elif event.key == pygame.K_DOWN:
-                self.selected_item = (self.selected_item + 1) % len(self.menu_items)
+                self.selected_item = (self.selected_item + 1) % len(self.settings_items)
             elif event.key == pygame.K_LEFT:
-                self.adjust_setting(-0.1)
+                self.adjust_setting(-1)
             elif event.key == pygame.K_RIGHT:
-                self.adjust_setting(0.1)
+                self.adjust_setting(1)
             elif event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
-                if self.selected_item == 2:  # Movement Mode
-                    self.game_settings.toggle_smooth_movement()
-                elif self.selected_item == len(self.menu_items) - 1:  # Back
-                    return "MAIN_MENU"
+                return self.activate_setting()
             elif event.key == pygame.K_ESCAPE:
                 return "MAIN_MENU"
         
         return None
     
-    def adjust_setting(self, delta):
-        """Изменение настройки"""
-        if self.selected_item == 0:  # Sound Volume
-            new_volume = max(0.0, min(1.0, self.sound_manager.sound_volume + delta))
-            if self.sound_manager:
-                self.sound_manager.set_sound_volume(new_volume)
-        elif self.selected_item == 1:  # Music Volume
-            new_volume = max(0.0, min(1.0, self.sound_manager.music_volume + delta))
-            if self.sound_manager:
-                self.sound_manager.set_music_volume(new_volume)
-        elif self.selected_item == 2:  # Movement Mode
+    def adjust_setting(self, direction):
+        """Изменение значения настройки"""
+        setting_name = self.settings_items[self.selected_item]
+        
+        if setting_name == "Плавное движение":
             self.game_settings.toggle_smooth_movement()
+        elif setting_name == "Громкость звуков":
+            new_volume = self.game_settings.sound_volume + direction * 0.1
+            self.game_settings.set_sound_volume(new_volume)
+            self.sound_manager.set_sound_volume(self.game_settings.sound_volume)
+        elif setting_name == "Громкость музыки":
+            new_volume = self.game_settings.music_volume + direction * 0.1
+            self.game_settings.set_music_volume(new_volume)
+            self.sound_manager.set_music_volume(self.game_settings.music_volume)
+        elif setting_name == "Тема спрайтов":
+            self.cycle_sprite_theme()
+    
+    def activate_setting(self):
+        """Активация настройки"""
+        setting_name = self.settings_items[self.selected_item]
+        
+        if setting_name == "Плавное движение":
+            self.game_settings.toggle_smooth_movement()
+        elif setting_name == "Тема спрайтов":
+            self.cycle_sprite_theme()
+        elif setting_name == "Назад":
+            return "MAIN_MENU"
+        
+        return None
+    
+    def cycle_sprite_theme(self):
+        """Переключение на следующую тему спрайтов"""
+        next_theme = self.game_settings.get_next_sprite_theme()
+        self.game_settings.set_sprite_theme(next_theme)
+        print(f"Переключена тема спрайтов на: {self.game_settings.get_sprite_theme_name()}")
+    
+    def get_setting_value_text(self, setting_name):
+        """Получение текста значения настройки"""
+        if setting_name == "Плавное движение":
+            return "Вкл" if self.game_settings.smooth_movement else "Выкл"
+        elif setting_name == "Громкость звуков":
+            return f"{int(self.game_settings.sound_volume * 100)}%"
+        elif setting_name == "Громкость музыки":
+            return f"{int(self.game_settings.music_volume * 100)}%"
+        elif setting_name == "Тема спрайтов":
+            return self.game_settings.get_sprite_theme_name()
+        
+        return ""
     
     def update(self, dt, input_handler):
         """Обновление экрана настроек"""
@@ -56,49 +95,50 @@ class SettingsScreen:
     
     def render(self, screen):
         """Отрисовка экрана настроек"""
-        # Заливка фона
-        screen.fill((20, 20, 40))
+        # Заливаем фон
+        screen.fill((0, 0, 0))
         
         # Заголовок
-        title = self.font_large.render("SETTINGS", True, (255, 255, 255))
+        title = self.font_large.render("НАСТРОЙКИ", True, (255, 255, 0))
         title_rect = title.get_rect(center=(self.width // 2, 100))
         screen.blit(title, title_rect)
         
-        # Пункты меню
+        # Пункты настроек
         start_y = 200
-        spacing = 80
-        
-        for i, item in enumerate(self.menu_items):
-            color = (255, 255, 0) if i == self.selected_item else (255, 255, 255)
-            
-            if item == 'Sound Volume':
-                text = f"Sound Volume: {int(self.sound_manager.sound_volume * 100)}%"
-            elif item == 'Music Volume':
-                text = f"Music Volume: {int(self.sound_manager.music_volume * 100)}%"
-            elif item == 'Movement Mode':
-                mode = "Smooth" if self.game_settings.smooth_movement else "Grid"
-                text = f"Movement: {mode}"
-            else:
-                text = item
-            
-            text_surface = self.font_medium.render(text, True, color)
-            text_rect = text_surface.get_rect(center=(self.width // 2, start_y + i * spacing))
-            screen.blit(text_surface, text_rect)
-            
-            # Индикатор выбора
+        for i, item in enumerate(self.settings_items):
+            # Цвет пункта меню
             if i == self.selected_item:
-                pygame.draw.rect(screen, (255, 255, 0), 
-                               (text_rect.left - 10, text_rect.top - 5, 
-                                text_rect.width + 20, text_rect.height + 10), 2)
+                color = (255, 255, 0)  # Желтый для выбранного
+                # Добавляем стрелку
+                arrow = self.font.render(">", True, color)
+                arrow_rect = arrow.get_rect(center=(100, start_y + i * 60))
+                screen.blit(arrow, arrow_rect)
+            else:
+                color = (255, 255, 255)  # Белый для остальных
+            
+            # Название настройки
+            text = self.font.render(item, True, color)
+            text_rect = text.get_rect(center=(300, start_y + i * 60))
+            screen.blit(text, text_rect)
+            
+            # Значение настройки (кроме "Назад")
+            if item != "Назад":
+                value_text = self.get_setting_value_text(item)
+                if value_text:
+                    value_surface = self.font.render(value_text, True, color)
+                    value_rect = value_surface.get_rect(center=(500, start_y + i * 60))
+                    screen.blit(value_surface, value_rect)
         
         # Подсказки управления
         controls = [
-            "↑↓ - Navigate",
-            "←→ - Adjust / Toggle",
-            "ENTER - Select",
-            "ESC - Back"
+            "↑↓ - Навигация",
+            "←→ - Изменить значение",
+            "ENTER - Переключить",
+            "ESC - Назад"
         ]
         
+        control_start_y = self.height - 120
         for i, control in enumerate(controls):
-            text = self.font_small.render(control, True, (200, 200, 200))
-            screen.blit(text, (20, self.height - 100 + i * 20))
+            control_surface = pygame.font.Font(None, 24).render(control, True, (128, 128, 128))
+            control_rect = control_surface.get_rect(center=(self.width // 2, control_start_y + i * 25))
+            screen.blit(control_surface, control_rect)

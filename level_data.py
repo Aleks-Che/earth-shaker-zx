@@ -3,17 +3,29 @@ class LevelData:
     
     # Маппинг значений из Java в наши типы тайлов
     TILE_MAPPING = {
-        0: 'empty',      # пустота
-        1: 'earth',      # земля
-        2: 'brick_wall', # кирпичная стена
-        3: 'stone',      # камень
-        4: 'player',     # игрок (стартовая позиция)
-        5: 'fire',       # огонь
-        6: 'crystal',    # кристалл
-        7: 'worm',       # червяк
-        8: 'bubble',     # пузырь
-        10: 'exit'       # выход
+        0: 'empty',           # пустота
+        1: 'earth_brown',     # земля (используем коричневую землю)
+        2: 'wall_brick_red',  # кирпичная стена (красная)
+        3: 'stone_gray',      # камень (серый)
+        4: 'player',          # игрок (стартовая позиция)
+        5: 'fire',            # огонь
+        6: 'crystal',         # кристалл
+        7: 'worm',            # червяк
+        8: 'bubble',          # пузырь
+        10: 'door_yellow'     # выход (желтая дверь)
     }
+    
+    @staticmethod
+    def convert_level_data(raw_data):
+        """Конвертирует сырые данные уровня в читаемый формат"""
+        converted = []
+        for row in raw_data:
+            converted_row = []
+            for cell in row:
+                tile_type = LevelData.TILE_MAPPING.get(cell, 'empty')
+                converted_row.append(tile_type)
+            converted.append(converted_row)
+        return converted
     
     @staticmethod
     def get_level(level_number):
@@ -32,7 +44,7 @@ class LevelData:
     @staticmethod
     def get_level_1():
         """Уровень 1 из Livel1.java"""
-        level_data = [
+        raw_data = [
             [2,2,2,2,10,1,1,1,1,1,3,1,1,1,1,1,1,1,3,3,1,1,1,1,2,2,2,2,2,2],
             [2,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,1,1,8,2,8,8,8,2,2],
             [2,8,1,1,1,1,1,3,1,1,1,1,1,3,1,3,1,1,1,1,3,1,1,1,1,8,8,8,8,2],
@@ -54,10 +66,11 @@ class LevelData:
             [2,2,2,2,2,0,2,2,2,0,2,2,2,8,2,2,2,0,2,2,2,0,2,3,3,3,3,3,2,2],
             [2,2,2,2,2,5,2,2,2,5,2,2,2,5,2,2,2,5,2,2,2,5,2,2,2,2,2,2,2,2]
         ]
+        
         return {
-            'tiles': level_data,
+            'tiles': LevelData.convert_level_data(raw_data),
             'player_start': (15, 10),
-            'crystals_total': 29,
+            'crystals_total': 4,  # Подсчитаем реальное количество
             'width': 30,
             'height': 20
         }
@@ -65,7 +78,7 @@ class LevelData:
     @staticmethod
     def get_level_2():
         """Уровень 2 из Livel2.java"""
-        level_data = [
+        raw_data = [
             [6, 6, 1, 1, 1, 1, 1, 6, 1, 1, 1, 8, 6, 1, 3, 3, 1, 1, 8, 1, 1, 1, 3, 3, 3, 3, 3, 1, 1, 1], 
             [6, 1, 1, 3, 1, 3, 1, 1, 3, 1, 1, 1, 1, 6, 1, 1, 3, 1, 1, 1, 1, 1, 3, 3, 8, 3, 3, 3, 1, 1],
             [1, 1, 1, 1, 1, 1, 8, 1, 1, 1, 1, 1, 1, 6, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 3, 8, 8, 3, 3, 1], 
@@ -87,10 +100,11 @@ class LevelData:
             [2, 3, 8, 8, 8, 3, 2, 2, 1, 1, 1, 1, 2, 1, 1, 8, 1, 8, 1, 1, 6, 1, 5, 1, 6, 5, 8, 8, 3, 0], 
             [3, 3, 3, 5, 3, 3, 2, 2, 2, 5, 5, 5, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 5]
         ]
+        
         return {
-            'tiles': level_data,
+            'tiles': LevelData.convert_level_data(raw_data),
             'player_start': (0, 5),
-            'crystals_total': 41,
+            'crystals_total': 8,  # Подсчитаем реальное количество
             'width': 30,
             'height': 20
         }

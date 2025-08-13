@@ -6,122 +6,102 @@ class MenuScreen:
         self.width = width
         self.height = height
         
-        # Шрифты
+        # Настройки меню
+        self.font = pygame.font.Font(None, 48)
         self.font_large = pygame.font.Font(None, 72)
-        self.font_medium = pygame.font.Font(None, 48)
-        self.font_small = pygame.font.Font(None, 24)
         
         # Пункты меню
-        self.menu_items = ['Start Game', 'Select Level', 'Settings', 'Quit']
+        self.menu_items = [
+            "Новая игра",
+            "Выбор уровня",
+            "Настройки",
+            "Выход"
+        ]
+        
         self.selected_item = 0
         
-        # Анимация
-        self.title_pulse = 0
-        self.pulse_speed = 2
+        # Анимация заголовка
+        self.title_animation_timer = 0.0
         
     def handle_event(self, event):
-        """Обработка событий меню"""
+        """Обработка событий главного меню"""
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_UP:
                 self.selected_item = (self.selected_item - 1) % len(self.menu_items)
             elif event.key == pygame.K_DOWN:
                 self.selected_item = (self.selected_item + 1) % len(self.menu_items)
             elif event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
-                return self.get_selected_action()
+                return self.activate_menu_item()
             elif event.key == pygame.K_ESCAPE:
                 return "QUIT"
         
         return None
     
-    def get_selected_action(self):
-        """Получение действия для выбранного пункта"""
-        if self.selected_item == 0:
+    def activate_menu_item(self):
+        """Активация выбранного пункта меню"""
+        item_name = self.menu_items[self.selected_item]
+        
+        if item_name == "Новая игра":
             return "START_GAME"
-        elif self.selected_item == 1:
+        elif item_name == "Выбор уровня":
             return "SELECT_LEVEL"
-        elif self.selected_item == 2:
+        elif item_name == "Настройки":
             return "SETTINGS"
-        elif self.selected_item == 3:
+        elif item_name == "Выход":
             return "QUIT"
+        
         return None
     
     def update(self, dt, input_handler):
-        """Обновление меню"""
-        # Анимация пульсации заголовка
-        self.title_pulse += dt * self.pulse_speed
+        """Обновление главного меню"""
+        self.title_animation_timer += dt
     
     def render(self, screen):
-        """Отрисовка меню"""
-        # Градиентный фон
-        self.draw_gradient_background(screen)
+        """Отрисовка главного меню"""
+        # Заливаем фон
+        screen.fill((0, 0, 0))
         
-        # Заголовок с пульсацией
-        pulse_scale = 1.0 + 0.1 * abs(math.cos(self.title_pulse))
-        title_color = (255, 255, int(200 + 55 * abs(math.sin(self.title_pulse))))
+        # Анимированный заголовок
+        title_offset = math.sin(self.title_animation_timer * 2) * 10
+        title_color_r = int(128 + 127 * math.sin(self.title_animation_timer))
+        title_color_g = int(128 + 127 * math.sin(self.title_animation_timer + 2))
+        title_color_b = int(128 + 127 * math.sin(self.title_animation_timer + 4))
         
-        title = self.font_large.render("EARTHSHAKER", True, title_color)
-        title_rect = title.get_rect(center=(self.width // 2, 150))
+        title = self.font_large.render("EARTHSHAKER", True, (title_color_r, title_color_g, title_color_b))
+        title_rect = title.get_rect(center=(self.width // 2, 150 + title_offset))
         screen.blit(title, title_rect)
         
         # Подзаголовок
-        subtitle = self.font_small.render("ZX80 Game Remake", True, (200, 200, 200))
-        subtitle_rect = subtitle.get_rect(center=(self.width // 2, 190))
+        subtitle = pygame.font.Font(None, 36).render("ZX Spectrum Remake", True, (128, 128, 128))
+        subtitle_rect = subtitle.get_rect(center=(self.width // 2, 200))
         screen.blit(subtitle, subtitle_rect)
         
         # Пункты меню
-        start_y = 280
-        spacing = 60
-        
+        start_y = 300
         for i, item in enumerate(self.menu_items):
-            # Цвет и эффекты для выбранного пункта
+            # Цвет пункта меню
             if i == self.selected_item:
-                color = (255, 255, 0)
-                # Добавляем небольшое свечение
-                glow_surface = self.font_medium.render(item, True, (100, 100, 0))
-                for dx in [-2, -1, 1, 2]:
-                    for dy in [-2, -1, 1, 2]:
-                        glow_rect = glow_surface.get_rect(center=(self.width // 2 + dx, start_y + i * spacing + dy))
-                        screen.blit(glow_surface, glow_rect)
+                color = (255, 255, 0)  # Желтый для выбранного
+                # Добавляем стрелку
+                arrow = self.font.render(">", True, color)
+                arrow_rect = arrow.get_rect(center=(self.width // 2 - 150, start_y + i * 60))
+                screen.blit(arrow, arrow_rect)
             else:
-                color = (255, 255, 255)
+                color = (255, 255, 255)  # Белый для остальных
             
-            # Основной текст
-            text_surface = self.font_medium.render(item, True, color)
-            text_rect = text_surface.get_rect(center=(self.width // 2, start_y + i * spacing))
-            screen.blit(text_surface, text_rect)
-            
-            # Стрелка для выбранного пункта
-            if i == self.selected_item:
-                arrow_x = text_rect.left - 40
-                arrow_y = text_rect.centery
-                pygame.draw.polygon(screen, (255, 255, 0), [
-                    (arrow_x, arrow_y),
-                    (arrow_x - 15, arrow_y - 10),
-                    (arrow_x - 15, arrow_y + 10)
-                ])
+            text = self.font.render(item, True, color)
+            text_rect = text.get_rect(center=(self.width // 2, start_y + i * 60))
+            screen.blit(text, text_rect)
         
         # Подсказки управления
         controls = [
-            "↑↓ - Navigate",
-            "ENTER - Select",
-            "ESC - Quit"
+            "↑↓ - Навигация",
+            "ENTER - Выбрать",
+            "ESC - Выход"
         ]
         
+        control_start_y = self.height - 100
         for i, control in enumerate(controls):
-            text = self.font_small.render(control, True, (150, 150, 150))
-            screen.blit(text, (20, self.height - 80 + i * 20))
-        
-        # Информация об игре
-        info_text = "Collect crystals and avoid enemies!"
-        info_surface = self.font_small.render(info_text, True, (180, 180, 180))
-        info_rect = info_surface.get_rect(center=(self.width // 2, self.height - 40))
-        screen.blit(info_surface, info_rect)
-    
-    def draw_gradient_background(self, screen):
-        """Отрисовка градиентного фона"""
-        # Простой градиент от темно-синего к черному
-        for y in range(self.height):
-            ratio = y / self.height
-            color_value = int(40 * (1 - ratio))
-            color = (0, 0, color_value)
-            pygame.draw.line(screen, color, (0, y), (self.width, y))
+            control_surface = pygame.font.Font(None, 24).render(control, True, (128, 128, 128))
+            control_rect = control_surface.get_rect(center=(self.width // 2, control_start_y + i * 25))
+            screen.blit(control_surface, control_rect)

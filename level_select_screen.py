@@ -5,22 +5,30 @@ class LevelSelectScreen:
         self.width = width
         self.height = height
         
-        # Шрифты
-        self.font_large = pygame.font.Font(None, 48)
-        self.font_medium = pygame.font.Font(None, 36)
-        self.font_small = pygame.font.Font(None, 24)
+        # Настройки меню
+        self.font = pygame.font.Font(None, 48)
+        self.font_large = pygame.font.Font(None, 64)
         
-        # Уровни
+        # Доступные уровни
         self.max_levels = 4
+        self.levels_per_row = 4
         self.selected_level = 1
         
     def handle_event(self, event):
-        """Обработка событий"""
+        """Обработка событий экрана выбора уровня"""
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_LEFT:
-                self.selected_level = max(1, self.selected_level - 1)
+                if self.selected_level > 1:
+                    self.selected_level -= 1
             elif event.key == pygame.K_RIGHT:
-                self.selected_level = min(self.max_levels, self.selected_level + 1)
+                if self.selected_level < self.max_levels:
+                    self.selected_level += 1
+            elif event.key == pygame.K_UP:
+                if self.selected_level > self.levels_per_row:
+                    self.selected_level -= self.levels_per_row
+            elif event.key == pygame.K_DOWN:
+                if self.selected_level + self.levels_per_row <= self.max_levels:
+                    self.selected_level += self.levels_per_row
             elif event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
                 return f"START_LEVEL_{self.selected_level}"
             elif event.key == pygame.K_ESCAPE:
@@ -29,52 +37,55 @@ class LevelSelectScreen:
         return None
     
     def update(self, dt, input_handler):
-        """Обновление экрана"""
+        """Обновление экрана выбора уровня"""
         pass
     
     def render(self, screen):
         """Отрисовка экрана выбора уровня"""
-        # Заливка фона
-        screen.fill((20, 20, 40))
+        # Заливаем фон
+        screen.fill((0, 0, 0))
         
         # Заголовок
-        title = self.font_large.render("SELECT LEVEL", True, (255, 255, 255))
+        title = self.font_large.render("ВЫБОР УРОВНЯ", True, (255, 255, 0))
         title_rect = title.get_rect(center=(self.width // 2, 100))
         screen.blit(title, title_rect)
         
-        # Уровни
-        start_x = self.width // 2 - (self.max_levels * 80) // 2
-        start_y = 250
+        # Сетка уровней
+        start_x = self.width // 2 - (self.levels_per_row * 100) // 2
+        start_y = 200
         
-        for i in range(1, self.max_levels + 1):
-            x = start_x + (i - 1) * 80
-            y = start_y
+        for level in range(1, self.max_levels + 1):
+            row = (level - 1) // self.levels_per_row
+            col = (level - 1) % self.levels_per_row
             
-            # Цвет в зависимости от выбора
-            if i == self.selected_level:
-                color = (255, 255, 0)
-                # Рамка
-                pygame.draw.rect(screen, color, (x - 5, y - 5, 70, 70), 3)
+            x = start_x + col * 120
+            y = start_y + row * 120
+            
+            # Цвет уровня
+            if level == self.selected_level:
+                color = (255, 255, 0)  # Желтый для выбранного
+                border_color = (255, 255, 255)
             else:
-                color = (255, 255, 255)
+                color = (255, 255, 255)  # Белый для остальных
+                border_color = (128, 128, 128)
             
-            # Квадрат уровня
-            pygame.draw.rect(screen, (100, 100, 100), (x, y, 60, 60))
-            pygame.draw.rect(screen, color, (x, y, 60, 60), 2)
+            # Рамка уровня
+            pygame.draw.rect(screen, border_color, (x - 50, y - 50, 100, 100), 3)
             
             # Номер уровня
-            level_text = self.font_medium.render(str(i), True, color)
-            level_rect = level_text.get_rect(center=(x + 30, y + 30))
+            level_text = self.font.render(str(level), True, color)
+            level_rect = level_text.get_rect(center=(x, y))
             screen.blit(level_text, level_rect)
         
-        # Подсказки
+        # Подсказки управления
         controls = [
-            "←→ - Select Level",
-            "ENTER - Start Level",
-            "ESC - Back to Menu"
+            "Стрелки - Навигация",
+            "ENTER - Выбрать уровень",
+            "ESC - Назад"
         ]
         
+        control_start_y = self.height - 120
         for i, control in enumerate(controls):
-            text = self.font_small.render(control, True, (200, 200, 200))
-            text_rect = text.get_rect(center=(self.width // 2, 400 + i * 25))
-            screen.blit(text, text_rect)
+            control_surface = pygame.font.Font(None, 24).render(control, True, (128, 128, 128))
+            control_rect = control_surface.get_rect(center=(self.width // 2, control_start_y + i * 25))
+            screen.blit(control_surface, control_rect)
